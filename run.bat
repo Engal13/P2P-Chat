@@ -1,4 +1,5 @@
 @echo off
+cmake -S . -B build
 cmake --build build
 if %errorlevel% equ 0 (
     echo.
