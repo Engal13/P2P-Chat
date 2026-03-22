@@ -1,0 +1,24 @@
+# Binarios y carpetas de compilación
+build/
+bin/
+*.exe
+*.o
+*.obj
+*.pdb
+*.ilk
+
+# Visual Studio / VS Code
+.vscode/
+.vs/
+*.sln
+*.vcxproj
+*.vcxproj.user
+
+# Base de datos local (Fase 5)
+*.db
+chat_history.dat
+*.log
+
+# Librerías (Opcional: Si quieres ignorar vcpkg/librerías y solo subir código)
+# Por ahora NO ignoramos /lib/ porque tus librerías están ahí de forma manual.
+# Pero ten en cuenta que subir librerías a Git hace el repositorio pesado.
