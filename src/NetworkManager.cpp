@@ -1,7 +1,10 @@
 #include "../include/NetworkManager.hpp"
 #include <cstddef>
 #include <exception>
+#include <iomanip>
 #include <iostream>
+#include <memory>
+#include <mutex>
 #include <vector>
 #include <functional>
 #include <thread>
@@ -14,6 +17,7 @@ using namespace asio::ip;
 NetworkManager::NetworkManager() {
   receptor = nullptr;
   socket = nullptr;
+  
 }
 
 NetworkManager::~NetworkManager() {
@@ -23,18 +27,85 @@ NetworkManager::~NetworkManager() {
 
 void NetworkManager::IniciarServidor(int port) 
 {
-  cout << "[Red] Iniciando servidor en el puerto: " << port << endl;
+   cout << "[Servidor Central] Iniciando en el puerto: " << port << endl;
 
   receptor = new tcp::acceptor(ioContext, tcp::endpoint(tcp::v4(), port));
   
-  socket = new tcp::socket(ioContext);
+  while(true)
+  {
+    auto nuevoCliente = std::make_shared<tcp::socket>(ioContext);
 
-  cout << "Esperando otras conexiones " << endl;
+    receptor->accept(*nuevoCliente);
 
-  receptor->accept(*socket);
+     cout << "[Servidor Central] ¡Nuevo usuario conectado desde: " << nuevoCliente->remote_endpoint().address().to_string() << "!" << endl;
+    {
+      std::lock_guard<std::mutex>lock(clientesMutex);
 
-  cout << "Conexion aceptada" << endl;
+      clientesConectados.push_back(nuevoCliente);
+    }
 
+    std::thread HiloVigilante(&NetworkManager::ManejarCliente, this, nuevoCliente);
+
+    HiloVigilante.detach();
+
+  }
+
+}
+
+void NetworkManager::ManejarCliente(std::shared_ptr<tcp::socket> clienteVigilado) 
+{
+    cout << "[Hilo] Iniciando vigilancia del nuevo cliente." << endl;
+
+    try 
+    {
+    while(true)
+    {
+      uint32_t tamano = 0;
+      asio::read(*clienteVigilado, asio::buffer(&tamano, sizeof(tamano)));
+
+      vector<unsigned char> basuraRecibida(tamano);
+
+      asio::read(*clienteVigilado, asio::buffer(basuraRecibida));
+
+      cout << "[Cartero Ciego] Recibi un bulto de basura ininteligible de un usuario. Rebotando..." << endl;
+
+      for(unsigned char b : basuraRecibida)
+      {
+        cout << hex << setw(2) << setfill('0') << int(b) << " ";
+      }
+      cout << dec << endl;
+
+      std::lock_guard<std::mutex>lock(clientesMutex);
+
+      for(auto& otroCliente : clientesConectados)
+      {
+        if(otroCliente != clienteVigilado)
+        {
+           cout << "[Cartero Ciego] Rebotando a IP: " << otroCliente->remote_endpoint().address().to_string() << endl;
+          asio::write(*otroCliente, asio::buffer(&tamano, sizeof(tamano)));
+          asio::write(*otroCliente, asio::buffer(basuraRecibida));
+
+        }
+      }
+
+    }
+    } catch (const std::exception& e) 
+    {
+      cout << "[Cartero Ciego] Usuario desconectado. Causa: " << e.what() << endl;
+      std::lock_guard<std::mutex>lock(clientesMutex);
+      for(auto it = clientesConectados.begin(); it != clientesConectados.end();)
+      {
+        if(*it == clienteVigilado)
+        {
+          it = clientesConectados.erase(it);
+          break;
+        }
+        else 
+        {
+          it++;
+        }
+      }
+    }
 }
 
 void NetworkManager::Conectar(const std::string &ip, int port) 
@@ -95,17 +166,15 @@ vector<unsigned char> NetworkManager::RecibirMensaje()
 
 void NetworkManager::ejectuarLoop(std::function<void(vector<unsigned char>)> alRecibir) 
 {
-    // Creamos un hilo que vivirá en paralelo al programa principal
     std::thread hiloRecepcion([this, alRecibir]() 
     {
         try 
         {
             while (true) 
             {
-                // Se queda pausado aquí hasta que llegue un mensaje
+                
                 vector<unsigned char> basuraRecibida = RecibirMensaje();
                 
-                // Cuando llega, se lo devuelve al programa principal usando la función
                 alRecibir(basuraRecibida);
             }
         }

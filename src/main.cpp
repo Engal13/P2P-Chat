@@ -11,116 +11,97 @@ using namespace std;
 
 int main() 
 {
-
     NetworkManager red;
-  
     EncryptionEngine cripto;
 
-    ParLlaves misLlaves = cripto.generarParLlaves();  
-
-    string LlaveMaestra;
-
-    cout << "1. Host " << endl;
-    cout << "2. Cliente " << endl;
+    cout << "1. Iniciar Servidor Central (Router)" << endl;
+    cout << "2. Entrar como Anfitrion de Chat" << endl;
+    cout << "3. Entrar a Chat Existente (Invitado)" << endl;
+    cout << "Seleccione: ";
     
     int opcion;
     cin >> opcion;
 
+    if (opcion == 1) 
+    {
+        cout << "Puerto para alojar el Servidor Central: ";
+        int port; cin >> port;
+        red.IniciarServidor(port); 
+        return 0; 
+    }
 
-    //Intercambio de llaves para crear la llave maestra y conexion al host o iniciar conexion al host
+    string LlaveMaestra;
+    ParLlaves misLlaves = cripto.generarParLlaves();
+    vector<unsigned char> miPublicaVector(misLlaves.llavePublica.begin(), misLlaves.llavePublica.end());
+
     try 
     {
-        if (opcion == 1) 
+        string ip; int port;
+        cout << "IP del Servidor Central: "; cin >> ip;
+        cout << "Puerto: "; cin >> port;
+        red.Conectar(ip, port);
+
+        if (opcion == 2) 
         {
-            red.IniciarServidor(5000);
+            cout << "[Anfitrión] Esperando a que tu amigo se conecte y mande su llave..." << endl;
+            vector<unsigned char> llaveAmigoVector = red.RecibirMensaje();
+            cout << "[Anfitrión] ¡Llave recibida! Mandandole la tuya..." << endl;
+            red.EnviarMensaje(miPublicaVector);
 
-            vector<unsigned char> miPub(misLlaves.llavePublica.begin(), misLlaves.llavePublica.end());
-
-            red.EnviarLlave(miPub);
-
-            vector<unsigned char> P2_Pub = red.RecibirLlave(crypto_box_PUBLICKEYBYTES);
-            string P2_Llave(P2_Pub.begin(), P2_Pub.end());
-
-            LlaveMaestra = cripto.CombinarLlaves(misLlaves.llavePrivada, P2_Llave);
-
-            cout << "Llave maestra generada" << endl;
-    
+            string llaveAmigoString(llaveAmigoVector.begin(), llaveAmigoVector.end());
+            LlaveMaestra = cripto.CombinarLlaves(misLlaves.llavePrivada, llaveAmigoString);
         }
-        else if (opcion == 2) 
+        else if (opcion == 3) 
         {
-            cout << "Ingresa la IP (Escribe 127.0.0.1 para probar contigo mismo): ";
-            string ip;
-            cin >> ip;
-            red.Conectar(ip, 5000);    
+            cout << "[Invitado] Mandando tu llave al anfitrion..." << endl;
+            red.EnviarMensaje(miPublicaVector);
+            cout << "[Invitado] Esperando la llave del anfitrion..." << endl;
+            vector<unsigned char> llaveAmigoVector = red.RecibirMensaje();
             
-            vector<unsigned char> P2_Pub = red.RecibirLlave(crypto_box_PUBLICKEYBYTES);
-            string P2_Llave(P2_Pub.begin(), P2_Pub.end());
-
-            vector<unsigned char> miPub(misLlaves.llavePublica.begin(), misLlaves.llavePublica.end());
-
-            red.EnviarLlave(miPub);
-
-            LlaveMaestra = cripto.CombinarLlaves(misLlaves.llavePrivada, P2_Llave);
-            cout << "Llave maestra generada" << endl;
-
+            string llaveAmigoString(llaveAmigoVector.begin(), llaveAmigoVector.end());
+            LlaveMaestra = cripto.CombinarLlaves(misLlaves.llavePrivada, llaveAmigoString);
         }
-        else 
-        {
-            cout << "Opción inválida." << endl;
-        }
-    }
-    catch (const exception& e) 
-    {
-        cerr << "Error crítico en la red: " << e.what() << endl;
+    } 
+    catch (const exception& e) {
+        cerr << "Error crítico de conexion: " << e.what() << endl; return 1;
     }
 
-    //loop para ejecutar el chat p2p usando un hilo para permitir que puedan mandar mensajes sin esperar por el otro
+    cout << "\n[!] LLAVE MAESTRA DIFFIE-HELLMAN LISTA. INICIANDO CHAT." << endl;
 
-     red.ejectuarLoop([&cripto, LlaveMaestra](vector<unsigned char> basuraRecibida) 
+    string miNombre;
+    cout << "Ingresar nombre" << endl;
+    cin >> miNombre;
+    
+    cin.ignore(10000, '\n');
+
+    red.ejectuarLoop([&cripto, LlaveMaestra](vector<unsigned char> basuraRecibida) 
     {
-        
-        cout << "\nMensaje encriptado recibido: ";
-        for(unsigned char b : basuraRecibida) 
-        {
-            cout << hex << setw(2) << setfill('0') << (int)b << " ";
-        }
-        cout << dec << endl;
-        
         try 
         {
-            
             string mensajeLimpio = cripto.descifrar(basuraRecibida, LlaveMaestra);
-            cout << "Mensaje descifrado: " << mensajeLimpio << "\n> " << flush;
+            cout << "\n: " << mensajeLimpio << "\n> " << flush;
         }
         catch (const exception& e) 
         {
-            cerr << "[Alerta de Seguridad] Mensaje corrupto o manipulado: " << e.what() << endl;
+            cerr << "\n[Error Desencriptando]: " << e.what() << "\n> " << flush;
         }
     });
-    cout << "\n=== CHAT ===" << endl;
-    cout << "> ";
-    
-    
+
     cin.ignore(10000, '\n');
+    cout << "> ";
     
     while(true) 
     {
         string miMensaje;
         getline(cin, miMensaje);
+        string mensajeEmpaquetado = miNombre + "|" + miMensaje;
         
         if (miMensaje == "salir") break;
         if (miMensaje.empty()) continue;
         
-        vector<unsigned char> basuraEnviada = cripto.encriptado(miMensaje, LlaveMaestra);
-        
-        cout << "Mensaje encriptado enviado: ";
-        for(unsigned char b : basuraEnviada) 
-        {
-            cout << hex << setw(2) << setfill('0') << (int)b << " ";
-        }
-        cout << dec << "\n> ";
-        
+        vector<unsigned char> basuraEnviada = cripto.encriptado(mensajeEmpaquetado, LlaveMaestra);
         red.EnviarMensaje(basuraEnviada);
+        cout << "> ";
     }
 
     return 0;

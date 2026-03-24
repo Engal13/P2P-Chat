@@ -2,6 +2,8 @@
 #define NETWORKMANAGER_HPP
 
 #include <cstddef>
+#include <memory>
+#include <mutex>
 #include <string>
 #include <asio.hpp>
 #include <vector>
@@ -12,6 +14,10 @@ private:
     asio::io_context ioContext;
     asio::ip::tcp::acceptor* receptor;
     asio::ip::tcp::socket* socket;
+
+    std::vector<std::shared_ptr<asio::ip::tcp::socket>> clientesConectados;
+
+    std::mutex clientesMutex;
 public:
 
     NetworkManager();
@@ -28,6 +34,8 @@ public:
     void EnviarMensaje(const std::vector<unsigned char>& datosCifrados);
 
     std::vector<unsigned char> RecibirMensaje();
+
+    void ManejarCliente(std::shared_ptr<asio::ip::tcp::socket> clienteVigilado);
 
     void ejectuarLoop(std::function<void(std::vector<unsigned char>)> alRecibir);
 };

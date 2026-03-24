@@ -56,7 +56,6 @@ vector<unsigned char> EncryptionEngine::encriptado(const std::string &textoPlano
   MensajeFinal.insert(MensajeFinal.end(), textoCifrado.begin(), textoCifrado.end());
 
   return MensajeFinal;
-
 }
 
 string EncryptionEngine::descifrar(const vector<unsigned char> &textoCifrado, const string &llave) 
@@ -84,6 +83,8 @@ string EncryptionEngine::descifrar(const vector<unsigned char> &textoCifrado, co
 
   return string(textoLimpio.begin(), textoLimpio.end());
 }
+
+// ----------
 
 string EncryptionEngine::CombinarLlaves(const string& P1_llavePrivada, const string& P2_LlavePublica)
 {
