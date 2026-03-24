@@ -35,11 +35,17 @@
 **4. Demostración en Consola (Prueba 27001)**
 - [ ] Modificar el `main.cpp` para ejecutar 3 pestañas: 1 Servidor Central (solo imprime la basura que mueve) y 2 Clientes (que imprimen el chat limpio).
 
-## Fase 5: El Rostro (Interfaz con Dear ImGui)
-- [ ] Integrar el backend de GLFW + Dear ImGui.
+## Fase 5: El Rostro (Interfaz de WhatsApp/Messenger(Meta) antiguo con Dear ImGui)
+- [ ] Inicializar el contexto gráfico usando GLFW y OpenGL3.
+- [ ] Dibujar tres paneles interactivos (`ImGui::BeginChild`):
+  - **Panel Izquierdo:** Lista de usuarios/charlas generada dinámicamente desde un `std::map`.
+  - **Panel Central:** Historial renderizado de los mensajes de tu contacto y caja de envío (`ImGui::InputText`).
+  - **Panel Derecho:** Consola "Traffic Monitor" showing la basura hexadecimal para demostrar E2EE.
+- [ ] Sincronizar el hilo de red asíncrono (`NetworkManager`) para empujar nuevos mensajes al `std::map` y que ImGui los dibuje en tiempo real.
 
-- [ ] Diseñar el sistema de guardado y carga de mensajes locales.
-- [ ] Actualizar `StorageManager` para gestionar lectura/escritura en disco.
-- [ ] Encriptar el archivo del historial local para proteger los logs en reposo.
-
+## Fase 6: La Bóveda (Persistencia Cifrada Local)
+- [ ] Configurar `StorageManager` para guardar la lista de chats (`std::map`) en el disco duro al recibir mensajes.
+- [ ] Requerir al usuario una "Contraseña Maestra Local" al abrir el `.exe`.
+- [ ] Utilizar `EncryptionEngine` para cifrar todo el historial y convertirlo en ruido blanco antes de guardarlo en un archivo (ej: `historial.p2p`).
+- [ ] Si te roban la computadora, el archivo en reposo será matemáticamente irrompible.
 
