@@ -19,21 +19,21 @@
 *(Siguiente paso a implementar por el equipo)*
 
 **1. Refactorización del NetworkManager (Multihilos para el Servidor)**
-- [ ] Modificar el Servidor para que acepte múltiples conexiones continuas usando un bucle `while(true)` y almacene a los clientes en un arreglo dinámico (`std::vector<std::shared_ptr<socket>>`).
-- [ ] Abrir un hilo (`std::thread`) dedicado para escuchar a cada cliente individual de forma asíncrona.
+- [x] Modificar el Servidor para que acepte múltiples conexiones continuas usando un bucle `while(true)` y almacene a los clientes en un arreglo dinámico (`std::vector<std::shared_ptr<socket>>`).
+- [x] Abrir un hilo (`std::thread`) dedicado para escuchar a cada cliente individual de forma asíncrona.
 
 **2. Lógica de Enrutamiento (Blind Forwarding)**
-- [ ] Crear la lógica de retransmisión en el Servidor.
-- [ ] Garantizar que el Servidor NUNCA importe ni utilice la clase `EncryptionEngine` (aislamiento criptográfico).
-- [ ] Cuando el Servidor reciba basura binaria de un Cliente, iterará por toda su lista de sockets enviando una copia a los demás clientes conectados.
+- [x ] Crear la lógica de retransmisión en el Servidor.
+- [x] Garantizar que el Servidor NUNCA importe ni utilice la clase `EncryptionEngine` (aislamiento criptográfico).
+- [x] Cuando el Servidor reciba basura binaria de un Cliente, iterará por toda su lista de sockets enviando una copia a los demás clientes conectados.
 
 **3. Intercambio de Llaves Mediado (Diffie-Hellman)**
-- [ ] Los Clientes (A y B) generarán su `ParLlaves` (Pública/Privada) localmente al arrancar el programa.
-- [ ] Los Clientes enviarán su Llave Pública al Servidor Central, y este la retransmitirá (Forwarding) al destinatario.
-- [ ] Los Clientes cruzarán las llaves públicas recibidas para derivar la **Llave Maestra Secreta** idéntica en ambas máquinas.
+- [x] Los Clientes (A y B) generarán su `ParLlaves` (Pública/Privada) localmente al arrancar el programa.
+- [x] Los Clientes enviarán su Llave Pública al Servidor Central, y este la retransmitirá (Forwarding) al destinatario.
+- [x] Los Clientes cruzarán las llaves públicas recibidas para derivar la **Llave Maestra Secreta** idéntica en ambas máquinas.
 
 **4. Demostración en Consola (Prueba 27001)**
-- [ ] Modificar el `main.cpp` para ejecutar 3 pestañas: 1 Servidor Central (solo imprime la basura que mueve) y 2 Clientes (que imprimen el chat limpio).
+- [x] Modificar el `main.cpp` para ejecutar 3 pestañas: 1 Servidor Central (solo imprime la basura que mueve) y 2 Clientes (que imprimen el chat limpio).
 
 ## Fase 5: El Rostro (Interfaz de WhatsApp/Messenger(Meta) antiguo con Dear ImGui)
 - [ ] Inicializar el contexto gráfico usando GLFW y OpenGL3.
