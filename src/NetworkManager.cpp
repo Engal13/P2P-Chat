@@ -1,5 +1,6 @@
 #include "../include/NetworkManager.hpp"
 #include <cstddef>
+#include <cstdint>
 #include <exception>
 #include <iomanip>
 #include <iostream>
@@ -17,7 +18,6 @@ using namespace asio::ip;
 NetworkManager::NetworkManager() {
   receptor = nullptr;
   socket = nullptr;
-  
 }
 
 NetworkManager::~NetworkManager() {
@@ -37,14 +37,14 @@ void NetworkManager::IniciarServidor(int port)
 
     receptor->accept(*nuevoCliente);
 
-     cout << "[Servidor Central] ¡Nuevo usuario conectado desde: " << nuevoCliente->remote_endpoint().address().to_string() << "!" << endl;
+    uint32_t asignado_id = 0;
     {
       std::lock_guard<std::mutex>lock(clientesMutex);
-
-      clientesConectados.push_back(nuevoCliente);
+      asignado_id = proximo_id_cliente++;
+      sesionesActivas[asignado_id] = nuevoCliente;
     }
 
-    std::thread HiloVigilante(&NetworkManager::ManejarCliente, this, nuevoCliente);
+    std::thread HiloVigilante(&NetworkManager::ManejarCliente, this, nuevoCliente, asignado_id);
 
     HiloVigilante.detach();
 
@@ -52,60 +52,70 @@ void NetworkManager::IniciarServidor(int port)
 
 }
 
-void NetworkManager::ManejarCliente(std::shared_ptr<tcp::socket> clienteVigilado) 
+void NetworkManager::ManejarCliente(std::shared_ptr<tcp::socket> clienteVigilado, uint32_t my_id) 
 {
-    cout << "[Hilo] Iniciando vigilancia del nuevo cliente." << endl;
 
-    try 
+  try 
+  {
+    while (true) 
     {
-    while(true)
-    {
-      uint32_t tamano = 0;
-      asio::read(*clienteVigilado, asio::buffer(&tamano, sizeof(tamano)));
+     
+      PacketHeader header;
+      asio::read(*clienteVigilado, asio::buffer(&header, sizeof(PacketHeader)));
 
-      vector<unsigned char> basuraRecibida(tamano);
+      // 2. Dependiendo de lo que diga el sobre, preparamos la caja para la
+      // basura (payload)
+      vector<unsigned char> payload(header.payload_size);
+      asio::read(*clienteVigilado, asio::buffer(payload));
 
-      asio::read(*clienteVigilado, asio::buffer(basuraRecibida));
+      cout << "[Router Central] Paquete recibido de ID " << my_id
+           << " dirigido a Destino ID " << header.target_id << endl;
 
-      cout << "[Cartero Ciego] Recibi un bulto de basura ininteligible de un usuario. Rebotando..." << endl;
+      std::lock_guard<std::mutex> lock(clientesMutex);
 
-      for(unsigned char b : basuraRecibida)
+      // 3. NUEVO: Si el destino es 0 (El Servidor), lo tratamos como un Broadcast Público
+      // Esto es vital para que un cliente nuevo le grite su Llave Pública y su Nombre a los demás
+      if (header.target_id == 0) 
       {
-        cout << hex << setw(2) << setfill('0') << int(b) << " ";
+          header.target_id = my_id; // El servidor firma el sobre con tu ID real de remitente
+          for (auto& par : sesionesActivas) 
+          {
+              if (par.first != my_id) // No te lo reenvies a ti mismo
+              {
+                  asio::write(*(par.second), asio::buffer(&header, sizeof(PacketHeader)));
+                  asio::write(*(par.second), asio::buffer(payload));
+              }
+          }
+          cout << "   -> [Broadcast] Paquete replicado a " << (sesionesActivas.size() - 1) << " clientes." << endl;
+          continue; // Listo, a esperar el siguiente paquete
       }
-      cout << dec << endl;
 
-      std::lock_guard<std::mutex>lock(clientesMutex);
-
-      for(auto& otroCliente : clientesConectados)
+      // 4. Si el destino NO es 0, es un mensaje privado dirigido
+      auto it = sesionesActivas.find(header.target_id);
+      if (it != sesionesActivas.end()) 
       {
-        if(otroCliente != clienteVigilado)
-        {
-           cout << "[Cartero Ciego] Rebotando a IP: " << otroCliente->remote_endpoint().address().to_string() << endl;
-          asio::write(*otroCliente, asio::buffer(&tamano, sizeof(tamano)));
-          asio::write(*otroCliente, asio::buffer(basuraRecibida));
+        // ¡Lo encontramos! Pasamos el paquete directamente a su cable
+        auto destinatario = it->second;
 
-        }
+        header.target_id = my_id;
+
+        asio::write(*destinatario, asio::buffer(&header, sizeof(PacketHeader)));
+        asio::write(*destinatario, asio::buffer(payload));
+        cout << "   -> Redirigido exitosamente a ID " << it->first << endl;
+      } else {
+        cout << "   -> Error: El destinatario ID " << header.target_id
+             << " no está conectado." << endl;
       }
-
     }
-    } catch (const std::exception& e) 
-    {
-      cout << "[Cartero Ciego] Usuario desconectado. Causa: " << e.what() << endl;
-      std::lock_guard<std::mutex>lock(clientesMutex);
-      for(auto it = clientesConectados.begin(); it != clientesConectados.end();)
-      {
-        if(*it == clienteVigilado)
-        {
-          it = clientesConectados.erase(it);
-          break;
-        }
-        else 
-        {
-          it++;
-        }
-      }
-    }
+  } 
+  catch (const std::exception &e) 
+  {
+    cout << "[Router Central] Cliente ID " << my_id
+         << " desconectado. Causa: " << e.what() << endl;
+
+    std::lock_guard<std::mutex> lock(clientesMutex);
+    sesionesActivas.erase(my_id);
+  }
 }
 
 void NetworkManager::Conectar(const std::string &ip, int port) 
@@ -127,63 +137,56 @@ void NetworkManager::Conectar(const std::string &ip, int port)
 }
 }
 
-void NetworkManager::EnviarLlave(const vector<unsigned char>& datos)
+
+void NetworkManager::EnviarMensaje(uint32_t target_id, PacketType type, const vector<unsigned char>& payload) 
 {
-  asio::write(*socket, asio::buffer(datos));
-}
+    PacketHeader header;
+    header.target_id = target_id;
+    header.type = type;
+    header.payload_size = payload.size();
 
-vector<unsigned char> NetworkManager::RecibirLlave(size_t cantidad)
-{
-  vector<unsigned char> BufferEntrada(cantidad);
-
-  asio::read(*socket, asio::buffer(BufferEntrada));
-
-  return BufferEntrada;
-}
-
-void NetworkManager::EnviarMensaje(const vector<unsigned char>& datosCifrados) 
-{
-    
-    uint32_t tamano = datosCifrados.size();
-    asio::write(*socket, asio::buffer(&tamano, sizeof(tamano)));
+    asio::write(*socket, asio::buffer(&header, sizeof(PacketHeader)));
    
-    asio::write(*socket, asio::buffer(datosCifrados));
+    asio::write(*socket, asio::buffer(payload));
 }
 
-vector<unsigned char> NetworkManager::RecibirMensaje() 
+NetworkManager::PaqueteRecibido NetworkManager::RecibirMensaje()
 {
+    PaqueteRecibido paquete;
     
-    uint32_t tamano = 0;
-    asio::read(*socket, asio::buffer(&tamano, sizeof(tamano)));
+    asio::read(*socket, asio::buffer(&paquete.header, sizeof(PacketHeader)));
    
-    vector<unsigned char> bufferRecepcion(tamano);
+    paquete.payload.resize(paquete.header.payload_size);
+    asio::read(*socket, asio::buffer(paquete.payload));
 
-    asio::read(*socket, asio::buffer(bufferRecepcion));
-
-    return bufferRecepcion;
+    return paquete;
 }
 
-
-void NetworkManager::ejectuarLoop(std::function<void(vector<unsigned char>)> alRecibir) 
+void NetworkManager::ejectuarLoop(std::function<void(PaqueteRecibido)> alRecibir) 
 {
-    std::thread hiloRecepcion([this, alRecibir]() 
+  // Creamos el hilo fantasma del cliente
+  std::thread hiloRecepcion([this, alRecibir]() 
+  {
+    try 
     {
-        try 
-        {
-            while (true) 
-            {
-                
-                vector<unsigned char> basuraRecibida = RecibirMensaje();
-                
-                alRecibir(basuraRecibida);
-            }
-        }
-        catch (const exception& e) 
-        {
-            cerr << "\n[Red] Se corto la conexión" << endl;
-        }
-    });
+      while (true) 
+      {
+        // Se queda bloqueado aquí hasta que llegue una carta del Cartero Ciego
+        PaqueteRecibido paquete = RecibirMensaje();
 
-    hiloRecepcion.detach();
+        // Se la entregamos a nuestro main.cpp para que lea el remitente y
+        // procese el chat
+        alRecibir(paquete);
+      }
+    } 
+    catch (const std::exception &e) 
+    {
+      cerr << "\n[Red] Se corto la conexión con el servidor. Causa: "
+           << e.what() << endl;
+    }
+  });
+
+  hiloRecepcion.detach();
 }
+
 

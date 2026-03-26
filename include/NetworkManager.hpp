@@ -1,12 +1,16 @@
 #ifndef NETWORKMANAGER_HPP
 #define NETWORKMANAGER_HPP
 
-#include <cstddef>
 #include <memory>
 #include <mutex>
+#include <map>
+#include "Protocol.hpp"
 #include <string>
 #include <asio.hpp>
 #include <vector>
+#include <map>
+#include <functional>
+#include "Protocol.hpp"
 
 class NetworkManager 
 {
@@ -15,7 +19,9 @@ private:
     asio::ip::tcp::acceptor* receptor;
     asio::ip::tcp::socket* socket;
 
-    std::vector<std::shared_ptr<asio::ip::tcp::socket>> clientesConectados;
+    
+    std::map<uint32_t, std::shared_ptr<asio::ip::tcp::socket>> sesionesActivas;
+    uint32_t proximo_id_cliente = 1;
 
     std::mutex clientesMutex;
 public:
@@ -24,20 +30,20 @@ public:
     ~NetworkManager();
 
     void IniciarServidor(int port);
-
     void Conectar(const std::string& ip, int port);
 
-    void EnviarLlave(const std::vector<unsigned char>& datos);
+    // Funciones adaptadas al protocolo E2EE
+    void EnviarMensaje(uint32_t target_id, PacketType type, const std::vector<unsigned char>& payload);
+    
+    struct PaqueteRecibido {
+        PacketHeader header;
+        std::vector<unsigned char> payload;
+    };
+    PaqueteRecibido RecibirMensaje();
 
-    std::vector<unsigned char> RecibirLlave(size_t cantidad);
+    void ManejarCliente(std::shared_ptr<asio::ip::tcp::socket> clienteVigilado, uint32_t my_id);
 
-    void EnviarMensaje(const std::vector<unsigned char>& datosCifrados);
-
-    std::vector<unsigned char> RecibirMensaje();
-
-    void ManejarCliente(std::shared_ptr<asio::ip::tcp::socket> clienteVigilado);
-
-    void ejectuarLoop(std::function<void(std::vector<unsigned char>)> alRecibir);
+    void ejectuarLoop(std::function<void(PaqueteRecibido)> alRecibir);
 };
 
 #endif

@@ -49,3 +49,4 @@
 - [ ] Utilizar `EncryptionEngine` para cifrar todo el historial y convertirlo en ruido blanco antes de guardarlo en un archivo (ej: `historial.p2p`).
 - [ ] Si te roban la computadora, el archivo en reposo será matemáticamente irrompible.
 
+  

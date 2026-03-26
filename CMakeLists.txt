@@ -46,8 +46,13 @@ if(WIN32)
     target_link_libraries(${PROJECT_NAME} PRIVATE 
         glfw 
         opengl32 
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/sodium/libsodium.a  
-        ws2_32  
+        "${CMAKE_CURRENT_SOURCE_DIR}/lib/sodium/libsodium.a"
+        ws2_32      # Sockets
+        mswsock     # Extensiones de Sockets para Asio
+        advapi32    # Requerido por libsodium para entropía
+        crypt32     # Requerido por libsodium
+        imm32       # Requerido por ImGui en algunos casos
+        gdi32                                                                               
     )
 elseif(UNIX AND NOT APPLE)
     # ================= LINUX =================
