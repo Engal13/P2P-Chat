@@ -1,4 +1,4 @@
-#include "../include/NetworkManager.hpp"
+﻿#include "../include/NetworkManager.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -73,8 +73,8 @@ void NetworkManager::ManejarCliente(std::shared_ptr<tcp::socket> clienteVigilado
 
       std::lock_guard<std::mutex> lock(clientesMutex);
 
-      // 3. NUEVO: Si el destino es 0 (El Servidor), lo tratamos como un Broadcast Público
-      // Esto es vital para que un cliente nuevo le grite su Llave Pública y su Nombre a los demás
+      // 3. NUEVO: Si el destino es 0 (El Servidor), lo tratamos como un Broadcast Publico
+      // Esto es vital para que un cliente nuevo le grite su Llave Publica y su Nombre a los demas
       if (header.target_id == 0) 
       {
           header.target_id = my_id; // El servidor firma el sobre con tu ID real de remitente
@@ -104,7 +104,7 @@ void NetworkManager::ManejarCliente(std::shared_ptr<tcp::socket> clienteVigilado
         cout << "   -> Redirigido exitosamente a ID " << it->first << endl;
       } else {
         cout << "   -> Error: El destinatario ID " << header.target_id
-             << " no está conectado." << endl;
+             << " no esta conectado." << endl;
       }
     }
   } 
@@ -171,7 +171,7 @@ void NetworkManager::ejectuarLoop(std::function<void(PaqueteRecibido)> alRecibir
     {
       while (true) 
       {
-        // Se queda bloqueado aquí hasta que llegue una carta del Cartero Ciego
+        // Se queda bloqueado aqui hasta que llegue una carta del Cartero Ciego
         PaqueteRecibido paquete = RecibirMensaje();
 
         // Se la entregamos a nuestro main.cpp para que lea el remitente y
@@ -181,12 +181,13 @@ void NetworkManager::ejectuarLoop(std::function<void(PaqueteRecibido)> alRecibir
     } 
     catch (const std::exception &e) 
     {
-      cerr << "\n[Red] Se corto la conexión con el servidor. Causa: "
+      cerr << "\n[Red] Se corto la conexion con el servidor. Causa: "
            << e.what() << endl;
     }
   });
 
   hiloRecepcion.detach();
 }
+
 
 

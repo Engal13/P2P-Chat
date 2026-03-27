@@ -1,4 +1,4 @@
-#include "../include/StorageManager.hpp"
+﻿#include "../include/StorageManager.hpp"
 #include "../include/EncryptionEngine.hpp"
 #include "NetworkManager.hpp"
 #include "KeyManager.hpp"
@@ -8,11 +8,11 @@
 
 using namespace std;
 
-// Función utilitaria para derivar la contraseña humana a una Llave de 32 Bytes
+// Funcion utilitaria para derivar la contrasena humana a una Llave de 32 Bytes
 string derivarLlaveDeContrasena(const string& passwordHumana) 
 {
     unsigned char hashDe32Bytes[crypto_secretbox_KEYBYTES];
-    // Licuadora criptográfica de Libsodium (Genera siempre la misma llave para la misma contraseña)
+    // Licuadora criptografica de Libsodium (Genera siempre la misma llave para la misma contrasena)
     crypto_generichash(hashDe32Bytes, sizeof(hashDe32Bytes), 
                       (const unsigned char*)passwordHumana.data(), passwordHumana.length(), 
                       NULL, 0);
@@ -32,10 +32,10 @@ int main()
     cin >> miUsuario;
 
     string miPassword;
-    cout << "Ingresa tu Contraseña Maestra: ";
+    cout << "Ingresa tu Clave Maestra: ";
     cin >> miPassword;
 
-    // 1. Transformamos la contraseña humana en la Llave Matemática Perfecta
+    // 1. Transformamos la contrasena humana en la Llave Matematica Perfecta
     string llaveFuerte = derivarLlaveDeContrasena(miPassword);
     miBoveda.configurarBoveda(&motorCripto, llaveFuerte, miUsuario);
 
@@ -72,15 +72,14 @@ int main()
         } 
         catch (const exception& e) 
         {
-            // Si entramos aquí, la contraseña era equivocada.
-            cout << "\n[ACCESO DENEGADO] ERROR DE CONTRASEÑA: " << e.what() << endl;
+            // Si entramos aqui, la contrasena era equivocada.
+            cout << "\n[ACCESO DENEGADO] ERROR DE CLAVE: " << e.what() << endl;
             cout << "Cerrando programa..." << endl;
             cin.ignore(10000, '\n'); 
             cin.get();
             return 1;
         }
     }
-        // (AQUÍ ARRIBA VA TU CÓDIGO ACTUAL DEL STORAGE MANAGER Y EL LOGIN...)
     
     KeyManager miLlavero; 
     NetworkManager red;
@@ -94,7 +93,7 @@ int main()
     {
         cout << "Puerto: "; int port; cin >> port;
         red.IniciarServidor(port); 
-        return 0; // El Servidor se queda en un bucle infinito atrapado ahí.
+        return 0; // El Servidor se queda en un bucle infinito atrapado ahi.
     }
 
     cout << "IP del Servidor: "; string ip; cin >> ip;
@@ -109,14 +108,14 @@ int main()
     
     red.EnviarMensaje(0, PacketType::RegisterClient, paqueteRegistro);
 
-    // 2. EL HILO ESCUCHA-TODO (Asíncrono)
+    // 2. EL HILO ESCUCHA-TODO (Asincrono)
     red.ejectuarLoop([&miLlavero, &motorCripto, &miBoveda, &red, miUsuario](NetworkManager::PaqueteRecibido paquete) 
     {
-        uint32_t su_id = paquete.header.target_id; // Quien te lo mandó
+        uint32_t su_id = paquete.header.target_id; // Quien te lo mando
         
         if (paquete.header.type == PacketType::RegisterClient) 
         {
-            // Desentrañamos el Nombre y la Llave Pública de quien nos saludó
+            // Desentranamos el Nombre y la Llave Publica de quien nos saludo
             string basuraString(paquete.payload.begin(), paquete.payload.end());
             size_t sep = basuraString.find('|');
             if (sep == string::npos) return;
@@ -127,7 +126,7 @@ int main()
             // ¡Magia! El llavero hace el Diffie-Hellman al instante en memoria RAM.
             bool es_nuevo = miLlavero.registrar_contacto(su_id, su_nombre, su_llave_pub);
 
-            // Si es alguien nuevo que acaba de entrar, le respondemos para que él también nos anote a nosotros
+            // Si es alguien nuevo que acaba de entrar, le respondemos para que el tambien nos anote a nosotros
             if (es_nuevo && su_id != 0) 
             {
                 vector<unsigned char> miRespuesta(miUsuario.begin(), miUsuario.end());
@@ -139,18 +138,18 @@ int main()
         else if (paquete.header.type == PacketType::ChatMessage) 
         {
             try {
-                // Sacamos nuestra llave RX específica para DESCIFRAR a esta persona exacta
+                // Sacamos nuestra llave RX especifica para DESCIFRAR a esta persona exacta
                 string llavePrivadaAislada = miLlavero.obtener_llave_rx(su_id);
                 string mensajeLimpio = motorCripto.descifrar(paquete.payload, llavePrivadaAislada);
                 
                 string nombreContacto = miLlavero.active_sessions[su_id]->username;
                 
-                // Imprimimos el chat y lo guardamos a la bóveda
+                // Imprimimos el chat y lo guardamos a la boveda
                 cout << "\n[" << nombreContacto << "] dice: " << mensajeLimpio << "\n> " << flush;
                 miBoveda.agregarMensaje(nombreContacto, mensajeLimpio);
             } 
             catch(const exception& e) {
-                cout << "\n[Criptografía] Error Descifrando: " << e.what() << endl;
+                cout << "\n[Criptografia] Error Descifrando: " << e.what() << endl;
             }
         }
     });
@@ -172,7 +171,7 @@ int main()
         if (input == "/list")
         {
             cout << "--- CONTACTOS E2EE ACTIVOS ---" << endl;
-            if (miLlavero.active_sessions.empty()) cout << "(Ninguno conectado aún)" << endl;
+            if (miLlavero.active_sessions.empty()) cout << "(Ninguno conectado aun)" << endl;
             for (auto& par : miLlavero.active_sessions) {
                 cout << "-> ID " << par.first << " : " << par.second->username << endl;
             }
@@ -191,11 +190,11 @@ int main()
 
                 try 
                 {
-                    // Sacamos nuestra llave TX para ENCRIPTARLE solo a él
+                    // Sacamos nuestra llave TX para ENCRIPTARLE solo a el
                     string llavePrivadaAislada = miLlavero.obtener_llave_tx(id_pobre_victima);
                     vector<unsigned char> bala = motorCripto.encriptado(mensaje, llavePrivadaAislada);
 
-                    // El misil P2P fue enrutado y encriptado con éxito.
+                    // El misil P2P fue enrutado y encriptado con exito.
                     red.EnviarMensaje(id_pobre_victima, PacketType::ChatMessage, bala);
                     
                     cout << "[Enviado con exito a ID " << id_pobre_victima << "]" << endl;
@@ -213,3 +212,4 @@ int main()
 
     return 0;
 }
+

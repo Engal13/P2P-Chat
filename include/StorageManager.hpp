@@ -1,4 +1,4 @@
-#ifndef STORAGEMANAGER_HPP
+﻿#ifndef STORAGEMANAGER_HPP
 #define STORAGEMANAGER_HPP
 
 #include <string>
@@ -34,3 +34,4 @@ public:
 };
 
 #endif
+

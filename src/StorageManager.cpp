@@ -1,4 +1,4 @@
-#include "../include/StorageManager.hpp"
+﻿#include "../include/StorageManager.hpp"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -20,7 +20,7 @@ void StorageManager::configurarBoveda(EncryptionEngine* motor, const std::string
 }
 
 void StorageManager::saveToFile(const std::string &filename, const std::vector<unsigned char> &data) {
-  std::cout << "[Almacenamiento] Guardando archivo de bóveda cifrada..." << std::endl;
+  std::cout << "[Almacenamiento] Guardando archivo de boveda cifrada..." << std::endl;
   std::ofstream out(filename, std::ios::binary);
   if (out.is_open()) {
     out.write(reinterpret_cast<const char*>(data.data()), data.size());
@@ -31,7 +31,7 @@ void StorageManager::saveToFile(const std::string &filename, const std::vector<u
 std::vector<unsigned char> StorageManager::loadFromFile(const std::string &filename) 
 {
     std::cout << "[Almacenamiento] Cargando archivo: " << filename << std::endl;
-    std::ifstream in(filename, std::ios::binary); // <-- ¡CRÍTICO EN WINDOWS!
+    std::ifstream in(filename, std::ios::binary); // <-- ¡CRiTICO EN WINDOWS!
     
     if (!in.is_open()) return std::vector<unsigned char>();
 
@@ -47,7 +47,7 @@ void StorageManager::agregarMensaje(const std::string& contacto, const std::stri
     
     if (cripto == nullptr || llaveBoveda.empty()) return;
 
-    // Guardamos automáticamente cifrado después de recibir/enviar
+    // Guardamos automaticamente cifrado despues de recibir/enviar
     std::string dataPlanText = serializarHistorial();
     std::vector<unsigned char> dataCifrada = cripto->encriptado(dataPlanText, llaveBoveda);
 
@@ -81,3 +81,4 @@ void StorageManager::deserializarHistorial(const std::string& data) {
         }
     }
 }
+
