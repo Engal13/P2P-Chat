@@ -1,4 +1,4 @@
-﻿#ifndef STORAGEMANAGER_HPP
+#ifndef STORAGEMANAGER_HPP
 #define STORAGEMANAGER_HPP
 
 #include <string>
@@ -31,7 +31,7 @@ public:
     void agregarMensaje(const std::string& contacto, const std::string& mensaje);
     std::string serializarHistorial();
     void deserializarHistorial(const std::string& data);
+    std::map<std::string, std::vector<std::string>> obtenerHistorialChats();
 };
 
 #endif
-

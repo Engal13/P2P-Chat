@@ -3,17 +3,12 @@
 
 class Interface {
 public:
+  // Inicializa y ejecuta la aplicacion de escritorio.
   Interface();
   ~Interface();
 
-  // Inicializar contexto de ImGui, GLFW/SDL, etc.
-  void init();
-
-  // Limpiar recursos
-  void shutdown();
-
-  // Renderizar un frame de la interfaz de usuario
-  void renderFrame();
+  // Inicia el loop principal de UI y red.
+  void run();
 };
 
 #endif

@@ -16,7 +16,7 @@ bin/
 
 # Base de datos local (Fase 5)
 *.db
-chat_history.dat
+*.dat
 *.log
 
 # Librerías (Opcional: Si quieres ignorar vcpkg/librerías y solo subir código)

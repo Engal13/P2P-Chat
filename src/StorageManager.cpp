@@ -1,24 +1,28 @@
-﻿#include "../include/StorageManager.hpp"
+#include "../include/StorageManager.hpp"
 #include <fstream>
 #include <iostream>
 #include <sstream>
 
+// Constructor: deja el motor criptografico sin asociar.
 StorageManager::StorageManager() 
 {
   cripto = nullptr;
 }
 
+// Destructor: no destruye el motor externo, solo su referencia.
 StorageManager::~StorageManager() 
 {
-  if(cripto) delete  cripto;
+  cripto = nullptr;
 }
 
+// Asocia archivo de boveda, llave de cifrado y motor criptografico.
 void StorageManager::configurarBoveda(EncryptionEngine* motor, const std::string& llave, std::string& nombreUsuario) {
     cripto = motor;
     llaveBoveda = llave;
     archivoBoveda = nombreUsuario + "_boveda.dat";
 }
 
+// Guarda bytes crudos en disco (modo binario).
 void StorageManager::saveToFile(const std::string &filename, const std::vector<unsigned char> &data) {
   std::cout << "[Almacenamiento] Guardando archivo de boveda cifrada..." << std::endl;
   std::ofstream out(filename, std::ios::binary);
@@ -28,10 +32,11 @@ void StorageManager::saveToFile(const std::string &filename, const std::vector<u
   }
 }
 
+// Carga archivo binario completo a memoria.
 std::vector<unsigned char> StorageManager::loadFromFile(const std::string &filename) 
 {
     std::cout << "[Almacenamiento] Cargando archivo: " << filename << std::endl;
-    std::ifstream in(filename, std::ios::binary); // <-- ¡CRiTICO EN WINDOWS!
+    std::ifstream in(filename, std::ios::binary); // Critico en Windows
     
     if (!in.is_open()) return std::vector<unsigned char>();
 
@@ -40,7 +45,7 @@ std::vector<unsigned char> StorageManager::loadFromFile(const std::string &filen
     return buffer;
 }
 
-
+// Agrega mensaje al historial y persiste boveda cifrada.
 void StorageManager::agregarMensaje(const std::string& contacto, const std::string& mensaje) {
     std::lock_guard<std::mutex> lock(storageMutex);
     historialChats[contacto].push_back(mensaje);
@@ -54,6 +59,7 @@ void StorageManager::agregarMensaje(const std::string& contacto, const std::stri
     saveToFile(archivoBoveda, dataCifrada); 
 }
 
+// Serializa el historial por contacto a texto plano.
 std::string StorageManager::serializarHistorial() {
     std::ostringstream oss;
     for (const auto& par : historialChats) {
@@ -66,6 +72,7 @@ std::string StorageManager::serializarHistorial() {
     return oss.str();
 }
 
+// Reconstruye el historial desde texto serializado.
 void StorageManager::deserializarHistorial(const std::string& data) {
     historialChats.clear();
     std::istringstream iss(data);
@@ -82,3 +89,8 @@ void StorageManager::deserializarHistorial(const std::string& data) {
     }
 }
 
+// Devuelve una copia del historial completo en memoria.
+std::map<std::string, std::vector<std::string>> StorageManager::obtenerHistorialChats() {
+    std::lock_guard<std::mutex> lock(storageMutex);
+    return historialChats;
+}

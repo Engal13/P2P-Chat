@@ -6,7 +6,8 @@
 enum class PacketType : uint8_t {
     RegisterClient = 0x00,
     HandshakeKey = 0x01,
-    ChatMessage = 0x02
+    ChatMessage = 0x02,
+    UserDisconnected = 0x03
 };
 
 #pragma pack(push, 1)

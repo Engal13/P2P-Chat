@@ -16,6 +16,13 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(glfw)
+
+FetchContent_Declare(
+    stb
+    URL https://github.com/nothings/stb/archive/refs/heads/master.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP true
+)
+FetchContent_MakeAvailable(stb)
 # --------------------------------------
 
 include_directories(include)
@@ -23,7 +30,8 @@ include_directories(lib/imgui)
 
 include_directories(lib/json)
 include_directories(lib/asio)         
-include_directories(lib/sodium/include)   
+include_directories(lib/sodium/include)
+include_directories(${stb_SOURCE_DIR})
 
 add_definitions(-DASIO_STANDALONE)
 

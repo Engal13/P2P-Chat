@@ -7,6 +7,7 @@
 
 using namespace std;
 
+// Genera par de llaves publico/privada para intercambio de claves.
 ParLlaves EncryptionEngine::generarParLlaves()
 {
   unsigned char llavePublica[crypto_box_PUBLICKEYBYTES];
@@ -22,6 +23,7 @@ ParLlaves EncryptionEngine::generarParLlaves()
   return par;
 }
 
+// Inicializa libsodium para operaciones criptograficas.
 EncryptionEngine::EncryptionEngine() 
 {
   if (sodium_init() < 0) 
@@ -31,7 +33,7 @@ EncryptionEngine::EncryptionEngine()
 }
 
 EncryptionEngine::~EncryptionEngine() {}
-//Encriptado y descincriptado
+// Cifra texto plano con esquema autenticado (nonce + MAC + cifrado).
 vector<unsigned char> EncryptionEngine::encriptado(const std::string &textoPlano, const std::string &llave) 
 {
   std::cout << "Encriptando mensaje..." << std::endl;
@@ -58,6 +60,7 @@ vector<unsigned char> EncryptionEngine::encriptado(const std::string &textoPlano
   return MensajeFinal;
 }
 
+// Descifra y valida integridad/autenticidad del mensaje.
 string EncryptionEngine::descifrar(const vector<unsigned char> &textoCifrado, const string &llave) 
 {
   if(textoCifrado.size() < crypto_secretbox_NONCEBYTES + crypto_secretbox_MACBYTES)
@@ -72,11 +75,11 @@ string EncryptionEngine::descifrar(const vector<unsigned char> &textoCifrado, co
 
   const unsigned char* basuraBinaria = textoCifrado.data() + crypto_secretbox_NONCEBYTES;
 
-  size_t tamañoBasura = textoCifrado.size() - crypto_secretbox_NONCEBYTES;
+  size_t tamanoBasura = textoCifrado.size() - crypto_secretbox_NONCEBYTES;
 
-  vector<unsigned char> textoLimpio(tamañoBasura - crypto_secretbox_MACBYTES);
+  vector<unsigned char> textoLimpio(tamanoBasura - crypto_secretbox_MACBYTES);
 
-  if(crypto_secretbox_open_easy(textoLimpio.data(), basuraBinaria, tamañoBasura, nonce, HashedKey) != 0)
+  if(crypto_secretbox_open_easy(textoLimpio.data(), basuraBinaria, tamanoBasura, nonce, HashedKey) != 0)
   {
     throw runtime_error("Fallo al descifrar: Mensaje corrupto o llave incorrecta");
   }
@@ -84,8 +87,7 @@ string EncryptionEngine::descifrar(const vector<unsigned char> &textoCifrado, co
   return string(textoLimpio.begin(), textoLimpio.end());
 }
 
-// ----------
-
+// Deriva una llave compartida final a partir de par privado/publico.
 string EncryptionEngine::CombinarLlaves(const string& P1_llavePrivada, const string& P2_LlavePublica)
 {
   unsigned char llaveCompartida[crypto_scalarmult_BYTES];
