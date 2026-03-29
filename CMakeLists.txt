@@ -43,6 +43,7 @@ set(SOURCES
     src/EncryptionEngine.cpp
     src/StorageManager.cpp
     src/Interface.cpp
+    src/KeyManager.cpp
 )
 
 file(GLOB IMGUI_SOURCES "lib/imgui/*.cpp")
